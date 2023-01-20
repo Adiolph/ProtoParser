@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import struct
 
 basic_structures = {
@@ -388,10 +390,11 @@ class ProtoParser:
 
     def dumps(self, strucut_name, obj_data):
         data_b = self.serialize_struct(obj_data, strucut_name)
-        return data_b
+        data_hex = data_b.encode("hex")
+        return data_hex
 
     def loads(self, strucut_name, serialized_data):
-        self.data_s = serialized_data
+        self.data_s = serialized_data.decode("hex")
         rst = self.load_struct(strucut_name)
         if len(self.data_s) != 0:
             print("serialized_data has not been read completely")
@@ -478,8 +481,6 @@ class ProtoParser:
         obj = self.loads(strucut_name, data_serialized)
         return obj
 
-        
-        
 
 if __name__ == "__main__":
     # read protocal to python dict
