@@ -406,9 +406,9 @@ class ProtoParser:
         return data_hex
 
     def loads(self, strucut_name, serialized_data):
-        self.data_s = serialized_data.decode("hex")
-        rst = self.load_struct(strucut_name)
-        if len(self.data_s) != 0:
+        self.data_to_load = serialized_data.decode("hex")
+        rst, idx_read = self.load_struct(strucut_name)
+        if idx_read != len(self.data_to_load):
             print("serialized_data has not been read completely")
         return rst
 
@@ -442,39 +442,38 @@ class ProtoParser:
             data_s += self.serialize_struct(list_data[i], type_name)
         return data_s
 
-    def load_struct(self, type_name):
+    def load_struct(self, type_name, idx_read = 0):
         if type_name == "string":
-            string_size = struct.unpack("<H", self.data_s[:2])[0]
-            idx_r = 2+string_size
-            string_data = self.data_s[2:idx_r]
-            self.data_s = self.data_s[idx_r:]
-            return string_data
+            string_size = struct.unpack("<H", self.data_to_load[idx_read:idx_read+2])[0]
+            string_data = self.data_to_load[idx_read+2:idx_read+2+string_size]
+            idx_read += 2 + string_size
+            return string_data, idx_read
         elif type_name in basic_structures.keys():
             type_code, type_size = basic_structures[type_name]
-            idx_r = type_size
             var_data = struct.unpack("<{:s}".format(
-                type_code), self.data_s[:idx_r])[0]
-            self.data_s = self.data_s[idx_r:]
-            return var_data
+                type_code), self.data_to_load[idx_read:idx_read+type_size])[0]
+            idx_read += type_size
+            return var_data, idx_read
         elif type_name in self.protocol.keys():
             fields = self.protocol[type_name].fields
             var_data = {}
             for (var_name, type_name_, is_list, list_size) in fields:
                 if is_list:
-                    var_data[var_name] = self.load_list(type_name_, list_size)
+                    var_data[var_name], idx_read = self.load_list(type_name_, list_size, idx_read)
                 else:
-                    var_data[var_name] = self.load_struct(type_name_)
-            return var_data
+                    var_data[var_name], idx_read = self.load_struct(type_name_, idx_read)
+            return var_data, idx_read
         else:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
 
-    def load_list(self, type_name, list_size):
+    def load_list(self, type_name, list_size, idx_read):
         if not list_size:
-            list_size = struct.unpack("<H", self.data_s[:2])[0]
-            self.data_s = self.data_s[2:]
+            list_size = struct.unpack("<H", self.data_to_load[idx_read:idx_read+2])[0]
+            idx_read += 2
         data = []
         for _ in range(list_size):
-            data.append(self.load_struct(type_name))
+            item, idx_read = self.load_struct(type_name, idx_read)
+            data.append(item)
         return tuple(data)
 
     def dumpComp(self, strucut_name, obj_data):
