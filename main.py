@@ -474,7 +474,7 @@ class ProtoParser:
         for _ in range(list_size):
             item, idx_read = self.load_struct(type_name, idx_read)
             data.append(item)
-        return tuple(data)
+        return tuple(data), idx_read
 
     def dumpComp(self, strucut_name, obj_data):
         obj_serialized = self.dumps(strucut_name, obj_data)
