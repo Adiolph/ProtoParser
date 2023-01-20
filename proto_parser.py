@@ -125,8 +125,8 @@ class ProtoParser:
 
 if __name__ == "__main__":
     # read protocal to python dict
-    ProtoParser = ProtoParser()
-    ProtoParser.buildDesc("player.proto")
+    proto_parser = ProtoParser()
+    proto_parser.buildDesc("player.proto")
 
     obj = {
         "name": "骨精灵",
@@ -154,18 +154,18 @@ if __name__ == "__main__":
     print("Original object: ")
     print(obj)
 
-    obj_serialized = ProtoParser.dumps("Player", obj)
+    obj_serialized = proto_parser.dumps("Player", obj)
     print("Serialized object: ")
     print(obj_serialized)
 
-    rst_deserialized = ProtoParser.loads("Player", obj_serialized)
+    rst_deserialized = proto_parser.loads("Player", obj_serialized)
     print("Deserialized object: ")
     print(rst_deserialized)
 
-    obj_compressed = ProtoParser.dumpComp("Player", obj)
+    obj_compressed = proto_parser.dumpComp("Player", obj)
     print("Compressed object: ")
     print(obj_compressed)
 
-    obj_decompressed = ProtoParser.loadComp("Player", obj_compressed)
+    obj_decompressed = proto_parser.loadComp("Player", obj_compressed)
     print("Deompressed object: ")
     print(obj_decompressed)
