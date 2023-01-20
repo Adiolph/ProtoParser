@@ -1,5 +1,3 @@
-import struct
-
 class BitArray:
     """
     Container to manipulate bit in python.
