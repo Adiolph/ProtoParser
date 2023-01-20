@@ -23,10 +23,9 @@ class ProtoParser:
         with open(filename) as f:
             str_proto = f.read()
         while len(str_proto) > 0:
-            struct_name, type_var_pairs, str_proto = ParsedStruct.parse_struct(
+            parsed_struct, str_proto = ParsedStruct.parse_struct(
                 str_proto)
-            self.protocol[struct_name] = ParsedStruct(
-                struct_name, type_var_pairs)
+            self.protocol[parsed_struct.name] = parsed_struct
 
     def dumps(self, strucut_name: str, obj_data: dict) -> str:
         data_b = self.serialize_struct(obj_data, strucut_name)
@@ -50,13 +49,13 @@ class ProtoParser:
         elif type_name in self.protocol.keys():
             fields = self.protocol[type_name].fields
             data_s = b""
-            for var_name, (type_name, is_list, list_size) in fields.items():
+            for (var_name, type_name_, is_list, list_size) in fields:
                 var_data = obj_data[var_name]
                 if is_list:
                     data_s += self.serialize_list(var_data,
-                                                  type_name, list_size)
+                                                  type_name_, list_size)
                 else:
-                    data_s += self.serialize_struct(var_data, type_name)
+                    data_s += self.serialize_struct(var_data, type_name_)
         else:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
         return data_s
@@ -89,11 +88,11 @@ class ProtoParser:
         elif type_name in self.protocol.keys():
             fields = self.protocol[type_name].fields
             var_data = {}
-            for var_name, (type_name, is_list, list_size) in fields.items():
+            for (var_name, type_name_, is_list, list_size) in fields:
                 if is_list:
-                    var_data[var_name] = self.load_list(type_name, list_size)
+                    var_data[var_name] = self.load_list(type_name_, list_size)
                 else:
-                    var_data[var_name] = self.load_struct(type_name)
+                    var_data[var_name] = self.load_struct(type_name_)
             return var_data
         else:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
