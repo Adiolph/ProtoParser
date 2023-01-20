@@ -15,10 +15,15 @@ basic_structures = {
 }
 
 class ParsedStruct:
+    """
+    Stores the parsed fields in an struct.
+    The `self.fields` variable is a list of paris:
+    [(var_name, type_name, is_list, list_size)]
+    """
     def __init__(self, name, type_var_pairs):
         """
-        The `self.fields` variable is a list of paris:
-        [(var_name, type_name, is_list, list_size)]
+        `type_var_pairs`: list of pair of type_name and var_name.
+        Example: [("int32", "id"), ("int32[]" "friends"), ("float[3]", "position")]
         """
         self.name = name
         self.fields = []
@@ -37,6 +42,9 @@ class ParsedStruct:
 
     @staticmethod
     def parse_struct(proto):
+        """
+        Read a struct from the proto
+        """
         name, proto_left = proto.split("{", 1)
         name = name.strip()
         body, proto_left = proto_left.split("}", 1)
@@ -51,7 +59,8 @@ class ParsedStruct:
                 type_var_pair = [type_name, variable_name]
             type_var_pairs.append(type_var_pair)
         proto_left = proto_left.split(";", 1)[1].strip()
-        return name, type_var_pairs, proto_left
+        parsed_struct = ParsedStruct(name, type_var_pairs)
+        return parsed_struct, proto_left
 
     def __str__(self):
         s_name = "Struct name: {}".format(self.name)
@@ -387,10 +396,9 @@ class ProtoParser:
         with open(filename) as f:
             str_proto = f.read()
         while len(str_proto) > 0:
-            struct_name, type_var_pairs, str_proto = ParsedStruct.parse_struct(
+            parsed_struct, str_proto = ParsedStruct.parse_struct(
                 str_proto)
-            self.protocol[struct_name] = ParsedStruct(
-                struct_name, type_var_pairs)
+            self.protocol[parsed_struct.name] = parsed_struct
 
     def dumps(self, strucut_name, obj_data):
         data_b = self.serialize_struct(obj_data, strucut_name)
