@@ -16,8 +16,12 @@ basic_structures = {
 
 class ParsedStruct:
     def __init__(self, name, type_var_pairs):
+        """
+        The `self.fields` variable is a list of paris:
+        [(var_name, type_name, is_list, list_size)]
+        """
         self.name = name
-        self.fields = {}
+        self.fields = []
         for type_name, var_name in type_var_pairs:
             is_list = False
             list_size = 0
@@ -29,7 +33,7 @@ class ParsedStruct:
                 except ValueError:
                     list_size = 0
                 type_name = type_name[:idx_l]
-            self.fields[var_name] = (type_name, is_list, list_size)
+            self.fields.append((var_name, type_name, is_list, list_size))
 
     @staticmethod
     def parse_struct(proto):
@@ -410,13 +414,13 @@ class ProtoParser:
         elif type_name in self.protocol.keys():
             fields = self.protocol[type_name].fields
             data_s = b""
-            for var_name, (type_name, is_list, list_size) in fields.items():
+            for (var_name, type_name_, is_list, list_size) in fields:
                 var_data = obj_data[var_name]
                 if is_list:
                     data_s += self.serialize_list(var_data,
-                                                  type_name, list_size)
+                                                  type_name_, list_size)
                 else:
-                    data_s += self.serialize_struct(var_data, type_name)
+                    data_s += self.serialize_struct(var_data, type_name_)
         else:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
         return data_s
@@ -447,11 +451,11 @@ class ProtoParser:
         elif type_name in self.protocol.keys():
             fields = self.protocol[type_name].fields
             var_data = {}
-            for var_name, (type_name, is_list, list_size) in fields.items():
+            for (var_name, type_name_, is_list, list_size) in fields:
                 if is_list:
-                    var_data[var_name] = self.load_list(type_name, list_size)
+                    var_data[var_name] = self.load_list(type_name_, list_size)
                 else:
-                    var_data[var_name] = self.load_struct(type_name)
+                    var_data[var_name] = self.load_struct(type_name_)
             return var_data
         else:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
@@ -467,6 +471,7 @@ class ProtoParser:
 
     def dumpComp(self, strucut_name, obj_data):
         obj_serialized = self.dumps(strucut_name, obj_data)
+        obj_serialized = obj_serialized.decode("hex")
         huffman_tree = Huffman.build_tree(obj_serialized)
         dict_code = Huffman.get_codes(huffman_tree)
         text_encode_bitarray = Huffman.encode_input(dict_code, obj_serialized)
@@ -478,7 +483,7 @@ class ProtoParser:
         tree_encode, text_encode = Huffman.unpack_tree_and_text_bitarray(data_compressed)
         tree = Huffman.decode_tree(tree_encode)
         data_serialized = Huffman.decode_input(tree, text_encode)
-        obj = self.loads(strucut_name, data_serialized)
+        obj = self.loads(strucut_name, data_serialized.encode("hex"))
         return obj
 
 

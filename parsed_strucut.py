@@ -1,7 +1,11 @@
 class ParsedStruct:
     def __init__(self, name, type_var_pairs):
+        """
+        The `self.fields` variable is a list of paris:
+        [(var_name, type_name, is_list, list_size)]
+        """
         self.name = name
-        self.fields = {}
+        self.fields = []
         for type_name, var_name in type_var_pairs:
             is_list = False
             list_size = 0
@@ -13,7 +17,7 @@ class ParsedStruct:
                 except ValueError:
                     list_size = 0
                 type_name = type_name[:idx_l]
-            self.fields[var_name] = (type_name, is_list, list_size)
+            self.fields.append((var_name, type_name, is_list, list_size))
 
     @staticmethod
     def parse_struct(proto):
