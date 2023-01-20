@@ -9,7 +9,7 @@ class Huffman:
     - https://stackoverflow.com/questions/759707/efficient-way-of-storing-huffman-tree
     """
     class Node:
-        def __init__(self, char: str, freq: int):
+        def __init__(self, char, freq):
             self.char = char  # the ascii character to encode
             self.freq = freq  # frequency of the char in the input string
             self.code = ""    # the Huffman code of this char
@@ -17,12 +17,12 @@ class Huffman:
             self.left = None
             self.right = None
         
-        def __repr__(self) -> str:
+        def __repr__(self):
             return "char: {}, freq: {}, code: {}".format(self.char, self.freq, self.code)
 
 
     @staticmethod
-    def stats_input(input: str) -> dict:
+    def stats_input(input):
         """
         Statistic the frequence of each charactor in the string
         Return a dict of {char : freq}. 
@@ -38,7 +38,7 @@ class Huffman:
         return dict(dict_freq)
 
     @staticmethod
-    def insert_node(nodes_list: list[Node], node: Node):
+    def insert_node(nodes_list, node):
         """
         Insert the node into the nodes_list while maintaining the ordering of the list
         """
@@ -51,7 +51,7 @@ class Huffman:
         nodes_list.append(node)
 
     @staticmethod
-    def build_tree(input: str):
+    def build_tree(input):
         """
         Build the Huffman tree from an input string
         """
@@ -73,7 +73,7 @@ class Huffman:
         return nodes_list[0]
 
     @staticmethod
-    def get_codes(root: Node) -> dict:
+    def get_codes(root):
         """
         Get the Huffman dict ({char: Huffman code}) from Huffman tree
         """
@@ -97,7 +97,7 @@ class Huffman:
         return dict_code
 
     @staticmethod
-    def encode_input(dict_code: dict, text_input: str, to_bitarray = True) -> BitArray | SimpleArray:
+    def encode_input(dict_code, text_input, to_bitarray = True):
         """
         Use Huffman dict to encode input text
         """
@@ -113,7 +113,7 @@ class Huffman:
         return text_encode
 
     @staticmethod
-    def decode_input(root: Node, text_encode: BitArray | SimpleArray) -> str:
+    def decode_input(root, text_encode):
         text_decode = ""
         idx_cur = 0
         idx_max = len(text_encode)
@@ -131,7 +131,7 @@ class Huffman:
 
 
     @staticmethod
-    def encode_tree(root: Node, to_bitarray = True) -> BitArray | SimpleArray:
+    def encode_tree(root, to_bitarray = True):
         stack = []
         stack.append(root)
         if to_bitarray:
@@ -150,7 +150,7 @@ class Huffman:
         return tree_encode
 
     @staticmethod
-    def decode_tree(bit_reader: BitArray | SimpleArray) -> Node:
+    def decode_tree(bit_reader):
         bit_cur = bit_reader.read_bit()
         if bit_cur:
             node = Huffman.Node(bit_reader.read_char(), 0)
@@ -165,13 +165,13 @@ class Huffman:
             return node
 
     @staticmethod
-    def pack_tree_and_text_bitarray(tree: BitArray, text: BitArray) -> bytes:
+    def pack_tree_and_text_bitarray(tree, text):
         rst = (struct.pack("<I", tree.bit_offset_w) + tree.to_bytes() + 
                struct.pack("<I", text.bit_offset_w) + text.to_bytes())
         return rst
 
     @staticmethod
-    def unpack_tree_and_text_bitarray(input_bytes: bytes) -> list[BitArray, BitArray]:
+    def unpack_tree_and_text_bitarray(input_bytes):
         num_bit_tree = struct.unpack("<I", input_bytes[0:4])[0]
         num_byte_tree = int(num_bit_tree / 8)
         if num_bit_tree - 8 * num_byte_tree > 0:

@@ -1,5 +1,5 @@
 class ParsedStruct:
-    def __init__(self, name, type_var_pairs) -> None:
+    def __init__(self, name, type_var_pairs):
         self.name = name
         self.fields = {}
         for type_name, var_name in type_var_pairs:
@@ -16,7 +16,7 @@ class ParsedStruct:
             self.fields[var_name] = (type_name, is_list, list_size)
 
     @staticmethod
-    def parse_struct(proto: str):
+    def parse_struct(proto):
         name, proto_left = proto.split("{", 1)
         name = name.strip()
         body, proto_left = proto_left.split("}", 1)
@@ -33,16 +33,16 @@ class ParsedStruct:
         proto_left = proto_left.split(";", 1)[1].strip()
         return name, type_var_pairs, proto_left
 
-    def __str__(self) -> str:
+    def __str__(self):
         s_name = "Struct name: {}".format(self.name)
         s_fields = "Struct fields: {}".format(self.fields)
         return s_name + "\n" + s_fields + "\n"
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return self.__str__()
 
 if __name__ == "__main__":
-    with open("a.proto") as f:
+    with open("player.proto") as f:
         proto = f.read()
     protocol = []
     while len(proto) > 0:

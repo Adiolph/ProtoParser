@@ -16,7 +16,7 @@ basic_structures = {
 
 
 class ProtoParser:
-    def __init__(self) -> None:
+    def __init__(self):
         self.protocol = {}
 
     def buildDesc(self, filename):
@@ -28,22 +28,21 @@ class ProtoParser:
             self.protocol[struct_name] = ParsedStruct(
                 struct_name, type_var_pairs)
 
-    def dumps(self, strucut_name: str, obj_data: dict) -> str:
+    def dumps(self, strucut_name, obj_data):
         data_b = self.serialize_struct(obj_data, strucut_name)
-        return data_b.hex()
+        return data_b
 
-    def loads(self, strucut_name: str, serialized_data: str) -> dict:
-        self.data_s = bytes.fromhex(serialized_data)
+    def loads(self, strucut_name, serialized_data):
+        self.data_s = serialized_data
         rst = self.load_struct(strucut_name)
         if len(self.data_s) != 0:
             print("serialized_data has not been read completely")
         return rst
 
-    def serialize_struct(self, obj_data, type_name: str) -> bytes:
+    def serialize_struct(self, obj_data, type_name):
         if type_name == "string":
-            data_b = obj_data.encode(encoding="UTF-8", errors="strict")
-            string_size = len(data_b)
-            data_s = struct.pack("<H", string_size) + data_b
+            string_size = len(obj_data)
+            data_s = struct.pack("<H", string_size) + obj_data
         elif type_name in basic_structures.keys():
             type_code = basic_structures[type_name][0]
             data_s = struct.pack("<{:s}".format(type_code), obj_data)
@@ -61,7 +60,7 @@ class ProtoParser:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
         return data_s
 
-    def serialize_list(self, list_data, type_name: str, list_size: int) -> bytes:
+    def serialize_list(self, list_data, type_name, list_size):
         data_s = b""
         if not list_size:
             num = len(list_data)
@@ -70,13 +69,11 @@ class ProtoParser:
             data_s += self.serialize_struct(list_data[i], type_name)
         return data_s
 
-    def load_struct(self, type_name: str):
+    def load_struct(self, type_name):
         if type_name == "string":
             string_size = struct.unpack("<H", self.data_s[:2])[0]
             idx_r = 2+string_size
-            string_data_bytes = self.data_s[2:idx_r]
-            string_data = string_data_bytes.decode(
-                encoding="UTF-8", errors="strict")
+            string_data = self.data_s[2:idx_r]
             self.data_s = self.data_s[idx_r:]
             return string_data
         elif type_name in basic_structures.keys():
@@ -98,7 +95,7 @@ class ProtoParser:
         else:
             raise KeyError("Unrecognized strucut name: {}".format(type_name))
 
-    def load_list(self, type_name: str, list_size: int) -> tuple:
+    def load_list(self, type_name, list_size):
         if not list_size:
             list_size = struct.unpack("<H", self.data_s[:2])[0]
             self.data_s = self.data_s[2:]
@@ -107,7 +104,7 @@ class ProtoParser:
             data.append(self.load_struct(type_name))
         return tuple(data)
 
-    def dumpComp(self, strucut_name: str, obj_data: dict) -> bytes:
+    def dumpComp(self, strucut_name, obj_data):
         obj_serialized = self.dumps(strucut_name, obj_data)
         huffman_tree = Huffman.build_tree(obj_serialized)
         dict_code = Huffman.get_codes(huffman_tree)
@@ -116,7 +113,7 @@ class ProtoParser:
         tree_text_packed = Huffman.pack_tree_and_text_bitarray(tree_encode_bitarray, text_encode_bitarray)
         return tree_text_packed
 
-    def loadComp(self, strucut_name: str, data_compressed: bytes) -> dict:
+    def loadComp(self, strucut_name, data_compressed):
         tree_encode, text_encode = Huffman.unpack_tree_and_text_bitarray(data_compressed)
         tree = Huffman.decode_tree(tree_encode)
         data_serialized = Huffman.decode_input(tree, text_encode)
@@ -168,7 +165,6 @@ if __name__ == "__main__":
     obj_compressed = ProtoParser.dumpComp("Player", obj)
     print("Compressed object: ")
     print(obj_compressed)
-
 
     obj_decompressed = ProtoParser.loadComp("Player", obj_compressed)
     print("Deompressed object: ")

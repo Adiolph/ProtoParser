@@ -1,5 +1,3 @@
-import struct
-
 class BitArray:
     """
     Container to manipulate bit in python.
@@ -8,20 +6,20 @@ class BitArray:
     - https://github.com/scott-griffiths/bitstring
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.raw_array = bytearray()
         self.bit_offset_w = 0  # write
         self.bit_offset_r = 0  # read
         self.byte_length = 0
 
     @staticmethod
-    def from_bytes(input_bytes: bytes, num_bit = 0):
+    def from_bytes(input_bytes, num_bit = 0):
         bit_array = BitArray()
         bit_array.bit_offset_w = num_bit
         bit_array.raw_array = bytearray(input_bytes)
         return bit_array
 
-    def to_bytes(self) -> bytes:
+    def to_bytes(self):
         return bytes(self.raw_array)
 
     def print_binary(self):
@@ -29,20 +27,20 @@ class BitArray:
             print("{:08b}".format(self.raw_array[i]))
 
     def print_hex(self):
-        print(self.raw_array.hex())
+        print(self.raw_array)
 
-    def __repr__(self) -> str:
-        return self.raw_array.hex()
+    def __repr__(self):
+        return self.raw_array
 
-    def __len__(self) -> int:
+    def __len__(self):
         return self.bit_offset_w
 
-    def check_full(self) -> None:
+    def check_full(self):
         if self.bit_offset_w == self.byte_length * 8:
             self.byte_length += 1
             self.raw_array.append(0)
 
-    def write_bit(self, bit: int) -> None:
+    def write_bit(self, bit):
         """
         append a bit at the end of bit array
         input bit can be 1 / 0
@@ -54,7 +52,7 @@ class BitArray:
             self.raw_array[idx_byte] |= (0b10000000 >> idx_bit)
         self.bit_offset_w += 1
 
-    def write_char(self, char: str) -> None:
+    def write_char(self, char):
         """
         append an ascii character at the end of bit array
         """
@@ -100,31 +98,31 @@ class SimpleArray:
     """
     The list version of BitArray, used only for testing
     """
-    def __init__(self) -> None:
+    def __init__(self):
         self.raw_array = []
         self.bit_offset_r = 0  # read
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return str(self.raw_array)
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self.raw_array)
 
-    def write_bit(self, bit: int):
+    def write_bit(self, bit):
         self.raw_array.append(bit)
 
-    def write_char(self, char: str):
+    def write_char(self, char):
         self.write_bit(char)
 
     def reset_read_head(self):
         self.bit_offset_r = 0
 
-    def read_bit(self) -> int:
+    def read_bit(self):
         bit = self.raw_array[self.bit_offset_r]
         self.bit_offset_r += 1
         return bit
 
-    def read_char(self) -> str:
+    def read_char(self):
         return self.read_bit()
 
 
