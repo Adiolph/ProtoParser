@@ -1,0 +1,8 @@
+Player
+{
+   string name;
+   int32 id;    
+   bool married;
+   int32[] friends;
+   float[3]position;
+};

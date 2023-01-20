@@ -1,0 +1,19 @@
+Skill 
+{
+   int32 id;
+   uint16 level;   
+};
+Pet
+{
+  string name;
+  Skill[2] skill;
+};
+Player
+{
+   string name;
+   int32 id;    
+   bool married;
+   int32[] friends;
+   float[3]position;
+   Pet pet;
+};
