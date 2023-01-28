@@ -1,13 +1,16 @@
 class BitArray:
     """
     Container to manipulate bit in python.
-    Main methods: write_bit, write_char, read_bit, read_char
+    Main methods: write_bits, write_char, read_bit, read_char
     Reference:
     - https://github.com/scott-griffiths/bitstring
     """
 
     def __init__(self):
+        # the main internal data strucuture of bit array
         self.raw_array = bytearray()
+        # a temp buffer to accelerate writting
+        self.write_buffer = ""
         self.bit_offset_w = 0  # write
         self.bit_offset_r = 0  # read
         self.byte_length = 0
@@ -35,39 +38,28 @@ class BitArray:
     def __len__(self):
         return self.bit_offset_w
 
-    def check_full(self):
-        if self.bit_offset_w == self.byte_length * 8:
-            self.byte_length += 1
-            self.raw_array.append(0)
-
-    def write_bit(self, bit):
+    def write_bits(self, bits):
         """
-        append a bit at the end of bit array
-        input bit can be 1 / 0
+        append 0/1 bit string into the bit array
         """
-        self.check_full()
-        if bit:
-            idx_byte = int(self.bit_offset_w / 8)
-            idx_bit = self.bit_offset_w - 8 * idx_byte
-            self.raw_array[idx_byte] |= (0b10000000 >> idx_bit)
-        self.bit_offset_w += 1
+        self.write_buffer += bits
+        while len(self.write_buffer) >= 8:
+            self.raw_array.append(int(self.write_buffer[:8:], 2))
+            self.write_buffer = self.write_buffer[8::]
+            self.bit_offset_w += 8
+    
+    def flush(self):
+        if self.write_buffer:
+            self.bit_offset_w += len(self.write_buffer)
+            self.write_buffer = self.write_buffer.ljust(8, '0')
+            self.raw_array.append(int(self.write_buffer, 2))
 
     def write_char(self, char):
         """
-        append an ascii character at the end of bit array
+        append a char into the bit array
         """
-        # convert char to int
-        char_ascii = ord(char)
-        if self.bit_offset_w == self.byte_length * 8:
-            # quick method if array is already in chunck of byte
-            self.raw_array.append(char_ascii)
-            self.byte_length += 1
-            self.bit_offset_w += 8
-        else:
-        # get each bit of char from left to right and append it
-            for i in range(8):
-                bit = 0b00000001 & (char_ascii >> (7-i))
-                self.write_bit(bit)
+        char_bits = "{:08b}".format(ord(char))
+        self.write_bits(char_bits)
 
     def reset_read_head(self):
         self.bit_offset_r = 0
@@ -108,11 +100,11 @@ class SimpleArray:
     def __len__(self):
         return len(self.raw_array)
 
-    def write_bit(self, bit):
-        self.raw_array.append(bit)
+    def write_bits(self, bits):
+        self.raw_array.append(bits)
 
     def write_char(self, char):
-        self.write_bit(char)
+        self.write_bits(char)
 
     def reset_read_head(self):
         self.bit_offset_r = 0
@@ -130,22 +122,24 @@ if __name__ == "__main__":
     arr = BitArray()
     print("Writing")
     # 0 - 8
-    arr.write_bit(1)
-    arr.write_bit(0)
-    arr.write_bit(0)
-    arr.write_bit(1)
-    arr.write_bit(1)
-    arr.write_bit(1)
-    arr.write_bit(0)
-    arr.write_bit(1)
+    arr.write_bits("1")
+    arr.write_bits("0")
+    arr.write_bits("0")
+    arr.write_bits("1")
+    arr.write_bits("1")
+    arr.write_bits("1")
+    arr.write_bits("0")
+    arr.write_bits("1")
     # 8 - 12
-    arr.write_bit(0)
-    arr.write_bit(1)
-    arr.write_bit(1)
-    arr.write_bit(0)
-    arr.write_bit(1)
+    arr.write_bits("0")
+    arr.write_bits("1")
+    arr.write_bits("1")
+    arr.write_bits("0")
+    arr.write_bits("1")
     # char
     arr.write_char("a")
+    # flush
+    arr.flush()
 
     print("Writing result:")
     arr.print_binary()

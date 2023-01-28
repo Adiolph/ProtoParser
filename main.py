@@ -73,13 +73,16 @@ class ParsedStruct:
 class BitArray:
     """
     Container to manipulate bit in python.
-    Main methods: write_bit, write_char, read_bit, read_char
+    Main methods: write_bits, write_char, read_bit, read_char
     Reference:
     - https://github.com/scott-griffiths/bitstring
     """
 
     def __init__(self):
+        # the main internal data strucuture of bit array
         self.raw_array = bytearray()
+        # a temp buffer to accelerate writting
+        self.write_buffer = ""
         self.bit_offset_w = 0  # write
         self.bit_offset_r = 0  # read
         self.byte_length = 0
@@ -107,39 +110,28 @@ class BitArray:
     def __len__(self):
         return self.bit_offset_w
 
-    def check_full(self):
-        if self.bit_offset_w == self.byte_length * 8:
-            self.byte_length += 1
-            self.raw_array.append(0)
-
-    def write_bit(self, bit):
+    def write_bits(self, bits):
         """
-        append a bit at the end of bit array
-        input bit can be 1 / 0
+        append 0/1 bit string into the bit array
         """
-        self.check_full()
-        if bit:
-            idx_byte = int(self.bit_offset_w / 8)
-            idx_bit = self.bit_offset_w - 8 * idx_byte
-            self.raw_array[idx_byte] |= (0b10000000 >> idx_bit)
-        self.bit_offset_w += 1
+        self.write_buffer += bits
+        while len(self.write_buffer) >= 8:
+            self.raw_array.append(int(self.write_buffer[:8:], 2))
+            self.write_buffer = self.write_buffer[8::]
+            self.bit_offset_w += 8
+    
+    def flush(self):
+        if self.write_buffer:
+            self.bit_offset_w += len(self.write_buffer)
+            self.write_buffer = self.write_buffer.ljust(8, '0')
+            self.raw_array.append(int(self.write_buffer, 2))
 
     def write_char(self, char):
         """
-        append an ascii character at the end of bit array
+        append a char into the bit array
         """
-        # convert char to int
-        char_ascii = ord(char)
-        if self.bit_offset_w == self.byte_length * 8:
-            # quick method if array is already in chunck of byte
-            self.raw_array.append(char_ascii)
-            self.byte_length += 1
-            self.bit_offset_w += 8
-        else:
-        # get each bit of char from left to right and append it
-            for i in range(8):
-                bit = 0b00000001 & (char_ascii >> (7-i))
-                self.write_bit(bit)
+        char_bits = "{:08b}".format(ord(char))
+        self.write_bits(char_bits)
 
     def reset_read_head(self):
         self.bit_offset_r = 0
@@ -165,7 +157,6 @@ class BitArray:
         char = chr(char_ascii)  # str(unichr(char_ascii)) for python2
         return char
 
-
 class SimpleArray:
     """
     The list version of BitArray, used only for testing
@@ -180,11 +171,11 @@ class SimpleArray:
     def __len__(self):
         return len(self.raw_array)
 
-    def write_bit(self, bit):
-        self.raw_array.append(bit)
+    def write_bits(self, bits):
+        self.raw_array.append(bits)
 
     def write_char(self, char):
-        self.write_bit(char)
+        self.write_bits(char)
 
     def reset_read_head(self):
         self.bit_offset_r = 0
@@ -215,7 +206,7 @@ class Huffman:
             self.right = None
         
         def __repr__(self):
-            return "char: {}, freq: {}, code: {}".format(self.char, self.freq, self.code)
+            return "char: {}, freq: {}, code: {}".format(self.char.encode("hex"), self.freq, self.code)
 
 
     @staticmethod
@@ -282,15 +273,16 @@ class Huffman:
         while len(node_stack) != 0:
             node = node_stack.pop()
             position = position_stack.pop()
-            node.code = position
-            dict_code[node.char] = node.code
-            if node.left:
-                node_stack.append(node.left)
-                position_stack.append(position + "0")
-            if node.right:
-                node_stack.append(node.right)
-                position_stack.append(position + "1")
-        dict_code.pop("")
+            if node.left is None and node.right is None:
+                node.code = position
+                dict_code[node.char] = node.code
+            else:
+                if node.left:
+                    node_stack.append(node.left)
+                    position_stack.append(position + "0")
+                if node.right:
+                    node_stack.append(node.right)
+                    position_stack.append(position + "1")
         return dict_code
 
     @staticmethod
@@ -304,9 +296,8 @@ class Huffman:
             text_encode = SimpleArray()
         for char in text_input:
             huff_code = dict_code[char]
-            for ch in huff_code:
-                bit = int(ch == "1")
-                text_encode.write_bit(bit)
+            text_encode.write_bits(huff_code)
+        text_encode.flush()
         return text_encode
 
     @staticmethod
@@ -338,12 +329,13 @@ class Huffman:
         while len(stack) != 0:
             node = stack.pop()
             if node.is_leaf:
-                tree_encode.write_bit(1)
+                tree_encode.write_bits("1")
                 tree_encode.write_char(node.char)
             else:
-                tree_encode.write_bit(0)
+                tree_encode.write_bits("0")
                 stack.append(node.right)
                 stack.append(node.left)
+        tree_encode.flush()
         return tree_encode
 
     @staticmethod
@@ -540,3 +532,54 @@ if __name__ == "__main__":
     obj_decompressed = proto_parser.loadComp("Player", obj_compressed)
     print("Deompressed object: ")
     print(obj_decompressed)
+
+
+    # obj_serialized = proto_parser.dumps("Player", obj)
+    # obj_serialized = obj_serialized.decode("hex")
+    # dict_freq = Huffman.stats_input(obj_serialized)
+
+    # nodes_list = []
+    # for char, freq in dict_freq.items():
+    #     node = Huffman.Node(char, freq)
+    #     node.is_leaf = True
+    #     nodes_list.append(node)
+
+    # while len(nodes_list) != 1:
+    #     first_node = nodes_list.pop()
+    #     second_node = nodes_list.pop()
+    #     node = Huffman.Node("", first_node.freq + second_node.freq)
+    #     node.right = first_node
+    #     node.left = second_node
+    #     Huffman.insert_node(nodes_list, node)
+    
+    # huffman_tree = nodes_list[0]
+    # dict_code = Huffman.get_codes(huffman_tree)
+    # text_encode_bitarray = Huffman.encode_input(dict_code, obj_serialized)
+    # tree_encode_bitarray = Huffman.encode_tree(huffman_tree)
+    # tree_text_packed = Huffman.pack_tree_and_text_bitarray(tree_encode_bitarray, text_encode_bitarray)
+
+
+
+    # input_bytes = obj_compressed
+
+    # num_bit_tree = struct.unpack("<I", input_bytes[0:4])[0]
+    # num_byte_tree = int(num_bit_tree / 8)
+    # if num_bit_tree - 8 * num_byte_tree > 0:
+    #     num_byte_tree += 1
+    # idx_text = 4 + num_byte_tree
+    # tree = BitArray.from_bytes(input_bytes[4:idx_text], num_bit_tree)
+
+    # num_bit_text = struct.unpack("<I", input_bytes[idx_text:idx_text+4])[0]
+    # num_byte_text = int(num_bit_text / 8)
+    # if num_bit_text - 8 * num_byte_text > 0:
+    #     num_byte_text += 1
+    # text = BitArray.from_bytes(input_bytes[idx_text+4:idx_text+4+num_byte_text], num_bit_text)
+    # idx_r = idx_text+4+num_byte_text
+    # if (idx_r) != len(input_bytes):
+    #     IndexError("Input bytes too large, something must be wrong.\n"
+    #                 "read bytes: {}, total bytes: {}".format(idx_r, len(input_bytes)))
+
+
+    # tree_encode, text_encode = Huffman.unpack_tree_and_text_bitarray(obj_compressed)
+    # tree = Huffman.decode_tree(tree_encode)
+    # data_serialized = Huffman.decode_input(tree, text_encode)

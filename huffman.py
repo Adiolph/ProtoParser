@@ -85,15 +85,16 @@ class Huffman:
         while len(node_stack) != 0:
             node = node_stack.pop()
             position = position_stack.pop()
-            node.code = position
-            dict_code[node.char] = node.code
-            if node.left:
-                node_stack.append(node.left)
-                position_stack.append(position + "0")
-            if node.right:
-                node_stack.append(node.right)
-                position_stack.append(position + "1")
-        dict_code.pop("")
+            if node.left is None and node.right is None:
+                node.code = position
+                dict_code[node.char] = node.code
+            else:
+                if node.left:
+                    node_stack.append(node.left)
+                    position_stack.append(position + "0")
+                if node.right:
+                    node_stack.append(node.right)
+                    position_stack.append(position + "1")
         return dict_code
 
     @staticmethod
